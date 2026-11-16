@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>엠앤티 인력 데모</title>
+<style>
+/* 레이아웃: 랜딩 → 근로자(폰 폭 단일 열) / 관리자(상단 바 + 넓은 본문) */
+@font-face{font-family:'Pretendard';src:url(fonts/PretendardVariable.woff2) format('woff2');font-weight:100 900;font-display:swap}
+:root{
+  --ink:#14161A; --yellow:#FFC400; --yellow-sh:#B88A00; --soft:#FFF1BF;
+  --ground:#F4F5F7; --gray:#E1E4E9; --gray-sh:#B9BEC6; --sub:#4A4F57; --line:#ECEEF1; --danger:#B3261E;
+  --font:'Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--ground);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased}
+body{font-variant-numeric:tabular-nums}
+button,input{font-family:inherit;color:inherit}
+button{cursor:pointer;border:0;transition:transform .09s ease,box-shadow .09s ease,background-color .12s ease}
+button:active:not(:disabled){transform:translateY(4px);box-shadow:0 0 0 transparent!important}
+button:disabled{cursor:not-allowed;opacity:.55}
+a{color:inherit}
+:focus-visible{outline:3px solid #1E4FD8;outline-offset:3px}
+input{border:0}
+svg{flex-shrink:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@keyframes pop{from{transform:scale(.92);opacity:.3}to{transform:scale(1);opacity:1}}
+@keyframes draw{from{stroke-dashoffset:420}to{stroke-dashoffset:0}}
+@keyframes up{from{transform:translate(-50%,16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+.pop{animation:pop .22s ease-out}
+
+/* 공통 */
+.bar{background:var(--ink);color:#fff;display:flex;align-items:center;gap:12px;padding:14px 20px;min-height:56px}
+.brand{font-size:18px;font-weight:800;white-space:nowrap}
+.home{margin-left:auto;display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:10px;background:#2A2E35;color:#fff;font-size:15px;font-weight:700}
+.card{background:#fff;border-radius:20px;box-shadow:0 2px 10px rgba(20,22,26,.06)}
+.btn-y{background:var(--yellow);color:var(--ink);box-shadow:0 5px 0 var(--yellow-sh);font-weight:800}
+.btn-g{background:var(--gray);color:var(--ink);box-shadow:0 4px 0 var(--gray-sh);font-weight:700}
+.btn-w{background:#fff;color:var(--ink);box-shadow:0 4px 0 var(--gray-sh);font-weight:700}
+.btn-d{background:var(--ink);color:#fff;font-weight:800}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;font-size:15px;font-weight:700;white-space:nowrap}
+.p-dark{background:var(--ink);color:#fff}.p-y{background:var(--yellow)}.p-soft{background:var(--soft)}.p-gray{background:var(--gray);color:var(--sub)}.p-red{background:#FBE4E2;color:var(--danger)}
+.new{display:inline-flex;padding:2px 8px;margin-left:8px;border-radius:6px;background:var(--yellow);font-size:13px;font-weight:800;vertical-align:middle}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:14px 22px;border-radius:14px;font-size:16px;font-weight:700;z-index:50;animation:up .2s ease-out;max-width:calc(100% - 32px);text-align:center}
+
+/* 랜딩 */
+.land{min-height:100vh;display:flex;flex-direction:column}
+.land-in{flex:1;max-width:960px;width:100%;margin:0 auto;padding:48px 20px;display:flex;flex-direction:column;gap:32px;justify-content:center}
+.land h1{margin:0;font-size:clamp(30px,5vw,44px);line-height:1.25;font-weight:800;text-wrap:balance}
+.land p{margin:0;font-size:18px;color:var(--sub);font-weight:600}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.choice{display:flex;flex-direction:column;align-items:flex-start;gap:18px;padding:32px;border-radius:28px;text-align:left;text-decoration:none;min-height:280px}
+.choice .ic{width:88px;height:88px;border-radius:24px;display:flex;align-items:center;justify-content:center}
+.choice b{font-size:32px;font-weight:800}
+.choice span{font-size:18px;font-weight:600;line-height:1.5}
+.choice .go{margin-top:auto;display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800}
+.c-w{background:var(--yellow);box-shadow:0 8px 0 var(--yellow-sh)}
+.c-w .ic{background:var(--ink)}
+.c-a{background:var(--ink);color:#fff;box-shadow:0 8px 0 #000}
+.c-a .ic{background:var(--yellow)}
+.c-a span{color:#C9CDD3}
+.choice:active{transform:translateY(6px);box-shadow:0 2px 0 transparent}
+.note{font-size:15px;color:var(--sub);font-weight:600}
+
+/* 근로자 */
+.phone{max-width:430px;margin:0 auto;min-height:100vh;background:var(--ground);display:flex;flex-direction:column}
+@media (min-width:600px){.phone{box-shadow:0 0 0 1px var(--line),0 10px 40px rgba(20,22,26,.08)}}
+.wbody{padding:24px 20px 28px;display:flex;flex-direction:column;gap:18px;flex:1}
+.wbody h1{margin:0;font-size:30px;line-height:40px;font-weight:800}
+.wstep{display:flex;gap:6px;padding:12px 20px 0;overflow-x:auto}
+.wstep button{flex:1 0 auto;height:36px;padding:0 10px;border-radius:999px;font-size:13px;font-weight:700;background:var(--gray);color:var(--sub)}
+.wstep button.on{background:var(--ink);color:var(--yellow)}
+.field{display:flex;align-items:center;gap:14px;height:68px;padding:0 18px}
+.field input{flex:1;min-width:0;height:56px;font-size:22px;background:transparent}
+.lbl{font-size:18px;font-weight:800}
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.days button{height:56px;font-size:20px;border-radius:14px;padding:0}
+.skills{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.skills button{height:100px;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:17px;padding:0}
+.on-y{background:var(--yellow)!important;box-shadow:0 5px 0 var(--yellow-sh)!important;font-weight:800!important;color:var(--ink)!important}
+.big{height:80px;border-radius:20px;font-size:26px}
+.row-i{display:flex;align-items:center;gap:16px;padding:16px 0}
+.row-i+.row-i{border-top:1px solid var(--line)}
+.ibox{width:52px;height:52px;border-radius:14px;background:var(--soft);display:flex;align-items:center;justify-content:center}
+.val{font-size:26px;line-height:34px;font-weight:800}
+.subt{font-size:17px;line-height:24px;color:var(--sub)}
+.job{display:flex;align-items:center;gap:16px;padding:18px;border-radius:20px;text-align:left;width:100%}
+.date{width:76px;height:84px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:15px;font-weight:700}
+.date b{font-size:32px;line-height:34px;font-weight:800}
+.status{display:flex;align-items:center;gap:16px;padding:20px;border-radius:20px}
+.prog{display:flex;align-items:flex-start;padding:22px 12px}
+.prog .st{width:64px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:15px;font-weight:700}
+.prog .dot{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--gray)}
+.prog .ln{flex:1;height:6px;margin-top:23px;border-radius:3px;background:var(--gray)}
+.sign{height:190px;border-radius:20px;background:#fff;box-shadow:0 2px 10px rgba(20,22,26,.06);display:flex;align-items:center;justify-content:center;position:relative;width:100%;padding:0}
+.sign::after{content:"";position:absolute;left:24px;right:24px;bottom:34px;height:2px;background:var(--gray)}
+.lnk{align-self:center;display:flex;align-items:center;gap:8px;height:48px;padding:0 16px;font-size:18px;font-weight:700;background:transparent}
+
+/* 관리자 */
+.abar{flex-wrap:wrap;padding:12px 4%;gap:10px 28px}
+.abar nav{display:flex;flex-wrap:wrap;gap:4px 8px}
+.abar nav button{height:44px;padding:0 14px;border-radius:10px;background:transparent;color:#fff;font-size:17px;font-weight:700}
+.abar nav button.on{background:#2A2E35;color:var(--yellow)}
+.wrap{max-width:1200px;margin:0 auto;padding:28px 4% 60px;display:flex;flex-direction:column;gap:22px}
+.hdr{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+.hdr h1{margin:0;font-size:30px;line-height:40px;font-weight:800}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:17px;font-weight:700;color:var(--sub)}
+.meta span{display:flex;align-items:center;gap:6px}
+.acts{display:flex;flex-wrap:wrap;gap:12px}
+.ab{height:56px;padding:0 22px;border-radius:14px;display:inline-flex;align-items:center;gap:10px;font-size:18px}
+.sb{height:44px;padding:0 14px;border-radius:12px;font-size:15px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.steps{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.steps button{display:flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 8px;border-radius:999px;font-size:16px;font-weight:700;background:var(--gray);color:var(--sub)}
+.steps button i{width:28px;height:28px;border-radius:50%;background:#fff;color:var(--ink);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:15px;font-weight:800}
+.steps button.on{background:var(--ink);color:#fff}.steps button.on i{background:var(--yellow)}
+.steps .sep{width:24px;height:4px;border-radius:2px;background:#C9CDD3}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+.tile{padding:20px;display:flex;align-items:center;gap:16px;border-radius:20px}
+.tile .tb{width:64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:var(--soft)}
+.tile small{display:block;font-size:16px;font-weight:700}
+.tile strong{display:block;font-size:44px;line-height:48px;font-weight:800}
+.tile strong em{font-style:normal;font-size:22px;font-weight:700}
+.t-dark{background:var(--ink);color:#fff}
+.split{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+.split>.m{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.split>.s{flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.panel{padding:20px;display:flex;flex-direction:column;gap:14px}
+.panel h2{margin:0;font-size:16px;font-weight:800}
+.panel.dark{background:var(--ink);color:#fff;border-radius:20px}
+.panel.dark h2{color:var(--yellow)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:17px}
+th{padding:16px 20px 12px;font-size:14px;color:var(--sub);text-align:left;white-space:nowrap}
+td{padding:10px 20px;border-top:1px solid var(--line);white-space:nowrap}
+td.r,th.r{text-align:right}
+td:first-child{font-weight:700}
+tr.sel td{background:#FFFBEA}
+tr.clk{cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:48px;padding:0 16px;border-radius:14px;background:var(--ground);color:var(--sub);box-shadow:0 4px 0 #C9CDD3;font-size:17px;font-weight:600}
+.chip.on{background:var(--yellow);color:var(--ink);box-shadow:0 4px 0 var(--yellow-sh);font-weight:800}
+.cell{width:68px;height:54px;border-radius:14px;font-size:22px;font-weight:800;background:var(--soft)}
+.cell.empty{background:var(--ground);color:#9AA0A8;font-size:14px;font-weight:700;box-shadow:inset 0 0 0 2px var(--gray)}
+.cell.sel{background:var(--ink);color:var(--yellow)}
+.cell.off{background:transparent;color:#9AA0A8;font-size:14px;font-weight:700;cursor:default}
+.stepper{display:flex;align-items:center;gap:10px;height:68px;padding:0 8px;background:var(--ground);border-radius:14px}
+.stepper button{width:52px;height:52px;border-radius:14px;background:#fff;box-shadow:0 3px 0 var(--gray-sh);display:flex;align-items:center;justify-content:center}
+.stepper output{flex:1;text-align:center;font-size:30px;font-weight:800}
+.bubble{background:var(--soft);border-radius:18px 18px 18px 4px;padding:16px;font-size:17px;line-height:27px;font-weight:600}
+.fill{display:flex;flex-direction:column;gap:12px}
+.fill div{display:flex;align-items:center;gap:12px}
+.fill i{width:32px;height:32px;border-radius:50%;background:#2A2E35;color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800}
+.fill .done i{background:var(--yellow);color:var(--ink)}
+.fill b{display:block;font-size:17px}.fill small{display:block;font-size:14px;color:#C9CDD3}
+.centers{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.crow{display:flex;align-items:center;gap:10px;font-size:16px}
+.crow .ibox{width:36px;height:36px;border-radius:10px}
+.crow .k{width:70px;font-weight:700;color:var(--sub)}
+.crow .v{font-weight:700}
+.stat3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center}
+.stat3 div{background:var(--ground);border-radius:14px;padding:12px 4px}
+.stat3 b{display:block;font-size:26px}.stat3 small{font-size:14px;font-weight:700;color:var(--sub)}
+.modal{position:fixed;inset:0;background:rgba(20,22,26,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:40}
+.modal .box{background:#fff;border-radius:24px;padding:24px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:16px}
+.sheet{height:220px;border-radius:16px;background:#2A2E35;display:flex;align-items:center;justify-content:center}
+.paper{width:240px;height:170px;border-radius:6px;background:#fff;transform:rotate(-3deg);padding:16px;display:flex;flex-direction:column;gap:9px;font-size:12px;font-weight:700;color:var(--sub)}
+.paper i{display:block;height:8px;border-radius:3px;background:var(--gray)}
+
+/* 관리자 모바일 */
+.wk td:first-child,.wk th:first-child{position:sticky;left:0;background:#fff;z-index:1;box-shadow:6px 0 8px -6px rgba(20,22,26,.15)}
+@media (max-width:720px){
+ .abar{padding:10px 16px 0}
+ .abar nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;gap:4px;margin:0 -4px;padding-bottom:10px;scrollbar-width:none}
+ .abar nav::-webkit-scrollbar{display:none}
+ .abar nav button{flex:1 0 auto;height:46px;font-size:17px}
+ .abar .home{margin-left:auto}
+ .wrap{padding:20px 16px 48px;gap:18px}
+ .acts{width:100%}
+ .acts .ab{flex:1 1 auto;justify-content:center}
+ .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .tile{padding:14px;gap:10px;flex-direction:column;align-items:flex-start}
+ .tile .tb{width:48px;height:48px;border-radius:14px}
+ .tile .tb svg{width:26px;height:26px}
+ .tile>svg{width:64px;height:64px}
+ .tile strong{font-size:34px;line-height:38px}
+ .rt table{min-width:0!important}
+ .rt thead{display:none}
+ .rt tr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:14px 16px;border-top:1px solid var(--line)}
+ .rt tr:first-child{border-top:0}
+ .rt td{border:0;padding:0;white-space:normal;display:flex;align-items:center;gap:6px;font-size:16px}
+ .rt td::before{content:attr(data-label);font-size:13px;font-weight:700;color:var(--sub)}
+ .rt td:first-child{flex:1 1 100%;font-size:19px;font-weight:800}
+ .rt td:first-child::before,.rt td:last-child::before{content:none}
+ .rt td:last-child{margin-left:auto}
+ .rt td.r{text-align:left}
+ .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;margin:0 -16px;padding-left:16px;padding-right:16px;scrollbar-width:none}
+ .chips::-webkit-scrollbar{display:none}
+ .chip{flex:0 0 auto}
+ .cell{width:56px;height:50px;font-size:20px}
+ .centers{grid-template-columns:1fr}
+}
+@media (max-width:480px){.hdr h1{font-size:26px;line-height:34px}.ab{height:52px;padding:0 16px;font-size:17px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="layer"></div>
+<script>
+(function(){
+'use strict';
+/* ---------- 아이콘 ---------- */
+var P={
+cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+won:'<circle cx="12" cy="12" r="9"/><path d="M8 9l1.5 6 2.5-6 2.5 6L16 9M7 12h10"/>',
+phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+x:'<path d="M6 6l12 12M18 6L6 18"/>',
+send:'<path d="M4 12l16-8-6 16-3-7z"/>',
+users:'<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><circle cx="18" cy="9" r="3"/><path d="M17 15a5 5 0 0 1 5 5"/>',
+user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+truck:'<path d="M2 7h11v9H2zM13 10h5l3 3v3h-8z"/><circle cx="6.5" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/>',
+down:'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
+doc:'<path d="M6 3h9l4 4v14H6zM15 3v4h4M9 12h7M9 16h7"/>',
+right:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+chev:'<path d="M9 5l7 7-7 7"/>',
+back:'<path d="M15 5l-7 7 7 7"/>',
+minus:'<path d="M6 12h12"/>',plus:'<path d="M6 12h12M12 6v12"/>',
+bell:'<path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21h4"/>',
+walk:'<circle cx="13" cy="4.5" r="2"/><path d="M13 8l-3 5 3 3v5M10 13l-3 1M13 9l4 3M10 16l-2 5"/>',
+meal:'<path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M17 3c-2 0-3 3-3 6s1 4 3 4v8"/>',
+shirt:'<path d="M8 3l-5 3 2 5 2-1v11h10V10l2 1 2-5-5-3a4 4 0 0 1-8 0z"/>',
+camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+swap:'<path d="M4 8h13l-4-4M20 16H7l4 4"/>',
+ban:'<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+temp:'<path d="M10 4a2 2 0 0 1 4 0v10a4 4 0 1 1-4 0z"/><path d="M12 9v7"/>',
+build:'<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/>',
+share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
+copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+pen:'<path d="M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3"/>',
+out:'<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>',
+home:'<path d="M3 11l9-7 9 7M5 10v10h14V10"/>',
+card:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>',
+box:'<path d="M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8"/>',
+basket:'<path d="M4 9h16l-2 10H6zM9 9l3-5 3 5"/>',
+sort:'<path d="M12 3v6M12 9l-6 5v6M12 9l6 5v6M4 18l2 2 2-2M16 18l2 2 2-2"/>',
+search:'<circle cx="11" cy="11" r="6.5"/><path d="M20.5 20.5L16 16M8.5 11l2 2 3-3.5"/>',
+clip:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/>',
+fork:'<path d="M3 16V9h5l3 4v3zM15 4v13M15 17h6M15 12h5"/><circle cx="5.5" cy="18" r="2"/><circle cx="11" cy="18" r="2"/>',
+layers:'<path d="M12 3l9 5-9 5-9-5zM3 12.5l9 5 9-5M3 17l9 5 9-5"/>',
+none:'<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
+grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'
+};
+function ic(n,s,c,w){s=s||22;c=c||'currentColor';w=w||2.2;return '<svg aria-hidden="true" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="'+w+'" stroke-linecap="round" stroke-linejoin="round">'+P[n]+'</svg>';}
+function esc(t){return String(t).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+function donut(p,label){var d=(213.6*p).toFixed(1);return '<svg role="img" aria-label="'+label+'" width="84" height="84" viewBox="0 0 84 84"><circle cx="42" cy="42" r="34" fill="none" stroke="#4A4F57" stroke-width="10"/><circle cx="42" cy="42" r="34" fill="none" stroke="#FFC400" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+d+' 213.6" transform="rotate(-90 42 42)"/></svg>';}
+
+/* ---------- 데이터 (전부 예시) ---------- */
+var CENTERS=[
+ {n:'A센터',f:'1층',cad:'전주 목~금',time:'08:00 ~ 17:00',meal:'제공',dress:'편한 복장',ct:'센터 비치 서면',pay:'신규자 근태표 사진'},
+ {n:'A센터',f:'4층',cad:'전일',time:'08:00 ~ 17:00',meal:'제공',dress:'편한 복장',ct:'센터 비치 서면',pay:'신규자 근태표 사진'},
+ {n:'A센터',f:'5층',cad:'전주 금',time:'08:00 ~ 17:00',meal:'확인 필요',dress:'편한 복장',ct:'센터 비치 서면',pay:'신규자 근태표 사진'},
+ {n:'B센터',f:'1동',cad:'전주 · 일정 공유',time:'09:00 ~ 18:00',meal:'확인 필요',dress:'방진복',ct:'담당 부장 보관',pay:'부장 출퇴근 공유'},
+ {n:'B센터',f:'2동',cad:'전일',time:'09:00 ~ 18:00',meal:'확인 필요',dress:'방진복',ct:'담당 부장 보관',pay:'부장 출퇴근 공유'}
+];
+var DAYS=['17 월','18 화','19 수','20 목','21 금','22 토'];
+var PAY='130,000원';
+function fresh(){return{
+ w:{step:'signup',days:{0:1,1:1,2:1,4:1},skills:{0:1,3:1},ans:null,signed:false,arrived:false,photo:false,submitted:false,name:''},
+ a:{tab:'week',week:{c:0,d:2},grid:[[8,10,12,9,14,'x'],[4,'',5,'',6,'x'],[6,6,6,6,6,'x'],[10,10,10,10,10,4],[3,'','','','','']],
+   wait:3,filters:{0:1,1:1,2:1,3:1,4:1},sent:false,shared:false,
+   roster:[
+    {id:1,n:'김영수',home:'1층',cnt:27,ns:0,st:'target',day:'arrived',pay:'paid',ev:'체크인',acct:'****1234'},
+    {id:2,n:'박미경',home:'1층',cnt:19,ns:1,st:'target',day:'moving',pay:'paid',ev:'체크인',acct:'****5521'},
+    {id:3,n:'최동환',home:'4층',cnt:12,ns:0,st:'target',day:'standby',pay:'none',ev:'–',acct:'****0907'},
+    {id:4,n:'정현숙',home:'4층',cnt:8,ns:1,st:'target',day:'lost',pay:'none',ev:'–',acct:'****7310'},
+    {id:5,n:'이상철',home:'신규',cnt:0,ns:0,st:'target',day:'lost',pay:'none',ev:'–',acct:'****4486',isNew:1},
+    {id:6,n:'한옥자',home:'1층',cnt:3,ns:3,st:'off',day:'none',pay:'none',ev:'–',acct:'****2268'},
+    {id:7,n:'오세진',home:'1층',cnt:15,ns:0,st:'target',day:'arrived',pay:'check',ev:'근태표 사진',acct:'****3317',isNew:1},
+    {id:8,n:'윤재호',home:'5층',cnt:9,ns:0,st:'target',day:'arrived',pay:'paid',ev:'체크인',acct:'****8840'}
+   ],
+   fill:0,
+   applicants:[{n:'지원자 A',t:41.2,sk:'상하차 · 분류',d:'월 화 수 금',st:'new'},{n:'지원자 B',t:36.5,sk:'경험 없음',d:'주말',st:'new'},{n:'지원자 C',t:31.0,sk:'피킹',d:'월~금',st:'new'}],
+   peopleTab:'new',detail:1,blocked:{}
+ },
+ modal:null
+};}
+var S=fresh();
+try{var saved=sessionStorage.getItem('mnt-demo');if(saved){S=JSON.parse(saved);}}catch(e){}
+function save(){try{sessionStorage.setItem('mnt-demo',JSON.stringify(S));}catch(e){}}
+
+var app=document.getElementById('app'),layer=document.getElementById('layer');
+var toastT;
+function toast(msg){layer.querySelectorAll('.toast').forEach(function(t){t.remove();});var t=document.createElement('div');t.className='toast';t.setAttribute('role','status');t.textContent=msg;layer.appendChild(t);clearTimeout(toastT);toastT=setTimeout(function(){t.remove();},2200);}
+
+/* ---------- 라우팅 ---------- */
+function view(){var h=(location.hash||'').replace('#','');return h==='worker'||h==='admin'?h:'start';}
+function go(h){if(location.hash==='#'+h){render();}else{location.hash=h;}window.scrollTo(0,0);}
+window.addEventListener('hashchange',function(){render();window.scrollTo(0,0);});
+
+function render(){
+ var v=view();
+ document.title=v==='worker'?'근로자 데모 · 엠앤티 인력':v==='admin'?'관리자 데모 · 엠앤티 인력':'엠앤티 인력 데모';
+ app.innerHTML=v==='worker'?worker():v==='admin'?admin():landing();
+ layer.querySelectorAll('.modal').forEach(function(m){m.remove();});
+ if(S.modal){var m=document.createElement('div');m.className='modal';m.innerHTML=modal();layer.appendChild(m);}
+ save();
+}
+
+/* ---------- 랜딩 ---------- */
+function landing(){
+ return '<div class="land"><div class="bar"><span class="brand">엠앤티 인력</span><span style="margin-left:auto;font-size:14px;color:#C9CDD3">데모 · 예시 데이터</span></div>'+
+ '<div class="land-in"><div style="display:flex;flex-direction:column;gap:10px"><h1>물류센터 인력 수급 툴 데모</h1><p>사용할 화면을 고르세요</p></div>'+
+ '<div class="choices">'+
+ '<a class="choice c-w" href="#worker"><span class="ic">'+ic('user',48,'#FFC400',2)+'</span><b>근로자</b><span>근무 요청 응답 · 계약 서명 · 출퇴근 · 입금 확인</span><span class="go">휴대폰 화면 '+ic('right',24)+'</span></a>'+
+ '<a class="choice c-a" href="#admin"><span class="ic">'+ic('grid',46,'#14161A',2)+'</span><b>관리자</b><span>요청 입력 · 문자 발송 · 출근 현황 · 노쇼 충원 · 정산</span><span class="go">PC · 모바일 '+ic('right',24)+'</span></a>'+
+ '</div><div class="note">센터명, 이름, 금액은 모두 예시입니다. 입력한 내용은 이 브라우저에만 남고, 문자는 실제로 발송되지 않습니다. <button type="button" data-a="reset" style="background:none;padding:0;font-size:15px;font-weight:800;text-decoration:underline">데모 초기화</button></div></div></div>';
+}
+
+/* ---------- 근로자 ---------- */
+var WSTEPS=[['signup','등록'],['list','목록'],['offer','응답'],['contract','계약'],['checkin','출근'],['checkout','퇴근'],['pay','입금']];
+var SKILLS=[['truck','상하차'],['basket','피킹'],['box','포장'],['sort','분류'],['search','검수'],['clip','재고 관리'],['fork','지게차'],['layers','래핑'],['none','경험 없음']];
+function wshell(inner){
+ var st=S.w.step;
+ var tabs=WSTEPS.map(function(s){return '<button type="button" data-a="wgo" data-v="'+s[0]+'" class="'+(s[0]===st?'on':'')+'" aria-current="'+(s[0]===st?'step':'false')+'">'+s[1]+'</button>';}).join('');
+ return '<div class="phone"><div class="bar"><span class="brand">엠앤티 인력</span><a class="home" href="#start">'+ic('home',18)+'처음</a></div>'+
+ '<nav class="wstep" aria-label="데모 화면 이동">'+tabs+'</nav><div class="wbody">'+inner+'</div></div>';
+}
+function worker(){
+ var w=S.w, f={signup:wSignup,list:wList,offer:wOffer,contract:wContract,checkin:wCheckin,checkout:wCheckout,pay:wPay}[w.step]||wSignup;
+ return wshell(f());
+}
+function wSignup(){
+ var w=S.w;
+ var days=['월','화','수','목','금','토','일'].map(function(d,i){return '<button type="button" data-a="wday" data-v="'+i+'" aria-pressed="'+(!!w.days[i])+'" class="'+(w.days[i]?'on-y':'btn-g')+'" style="'+(w.days[i]?'':'font-weight:500;color:#4A4F57')+'">'+d+'</button>';}).join('');
+ var sk=SKILLS.map(function(s,i){return '<button type="button" data-a="wskill" data-v="'+i+'" aria-pressed="'+(!!w.skills[i])+'" class="'+(w.skills[i]?'on-y':'btn-w')+'">'+ic(s[0],36,'#14161A',1.8)+s[1]+'</button>';}).join('');
+ return '<div style="display:flex;align-items:baseline;justify-content:space-between"><h1>근무자 등록</h1><span style="font-size:16px;font-weight:700;color:#4A4F57">1분 · 설치 없음</span></div>'+
+ '<div style="display:flex;flex-direction:column;gap:12px">'+
+ '<label class="card field">'+ic('user',28)+'<input id="w-name" type="text" placeholder="이름" aria-label="이름" value="'+esc(w.name)+'"></label>'+
+ '<label class="card field">'+ic('phone',28)+'<input id="w-phone" type="tel" placeholder="휴대폰 번호" aria-label="휴대폰 번호"></label>'+
+ '<label class="card field">'+ic('pin',28)+'<input id="w-area" type="text" placeholder="거주지 (시·구)" aria-label="거주지"></label></div>'+
+ '<div style="display:flex;flex-direction:column;gap:10px"><div class="lbl">가능 요일</div><div class="days">'+days+'</div></div>'+
+ '<div style="display:flex;flex-direction:column;gap:10px"><div class="lbl">경험 업무</div><div class="skills">'+sk+'</div></div>'+
+ '<label style="display:flex;align-items:center;gap:12px;font-size:17px;font-weight:700"><input id="w-agree" type="checkbox" checked style="width:30px;height:30px;accent-color:#14161A">문자 수신 · 개인정보 동의</label>'+
+ '<button type="button" class="btn-y big" data-a="wsignup">등록</button>';
+}
+function jobCard(d,dow,site,meta,tail,act,dark){
+ return '<button type="button" class="job '+(dark?'btn-d':'btn-w')+'" data-a="wgo" data-v="'+act+'" style="'+(dark?'':'')+'">'+
+ '<span class="date" style="background:'+(dark?'#2A2E35':'#FFC400')+'">11월<b style="color:'+(dark?'#FFC400':'#14161A')+'">'+d+'</b>'+dow+'</span>'+
+ '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span style="font-size:22px;font-weight:800">'+site+'</span><span style="font-size:17px;font-weight:600;color:'+(dark?'#C9CDD3':'#4A4F57')+'">'+meta+'</span>'+tail+'</span>'+ic('chev',28,dark?'#fff':'#14161A',2.6)+'</button>';
+}
+function wList(){
+ var w=S.w, req=w.ans===null;
+ var out='<div style="display:flex;align-items:center;justify-content:space-between"><h1>근무 목록</h1><span class="pill p-dark">요청 <span style="color:#FFC400">'+(req?2:1)+'</span></span></div>';
+ if(req) out+=jobCard('19','수','A센터 1층','08:00 ~ 17:00 · 상하차','<span style="font-size:20px;font-weight:800">'+PAY+'</span>','offer');
+ out+=jobCard('21','금','A센터 4층','08:00 ~ 17:00 · 분류','<span style="font-size:20px;font-weight:800">'+PAY+'</span>','offer');
+ if(w.ans==='yes'){
+  out+='<div class="lbl" style="margin-top:6px">확정 근무</div>'+jobCard('19','수','A센터 1층','08:00 ~ 17:00 · 상하차',
+   w.signed?'<span style="display:flex;align-items:center;gap:6px;font-size:17px;font-weight:800;color:#FFC400">'+ic('check',20,'#FFC400',3)+'출근 확정</span>':'<span style="display:flex;align-items:center;gap:6px;font-size:17px;font-weight:800;color:#FFC400">'+ic('pen',20,'#FFC400',2.4)+'계약서 서명 필요</span>',
+   w.signed?'checkin':'contract',true);
+ }
+ out+='<button type="button" class="lnk" data-a="wgo" data-v="pay" style="margin-top:auto">'+ic('won',22,'currentColor',2)+'입금 내역</button>';
+ return out;
+}
+function irow(i,label,main,sub){return '<div class="row-i"><span class="ibox">'+ic(i,28,'#14161A',2)+'</span><span style="display:flex;flex-direction:column"><span class="sr" style="position:absolute;left:-9999px">'+label+'</span><span class="val">'+main+'</span>'+(sub?'<span class="subt">'+sub+'</span>':'')+'</span></div>';}
+function wOffer(){
+ var w=S.w;
+ var out='<div style="display:flex;align-items:center;gap:4px"><button type="button" class="lnk" data-a="wgo" data-v="list" aria-label="근무 목록으로" style="margin-left:-16px;padding:0 8px;height:48px">'+ic('back',28,'#14161A',2.6)+'</button><h1>근무 요청</h1></div>'+
+ '<div class="card" style="padding:4px 20px">'+irow('cal','날짜','11월 19일 (수)')+irow('clock','시간','08:00 ~ 17:00')+irow('pin','장소','A센터 1층','상하차')+irow('won','일당',PAY,'당일 입금')+'</div>'+
+ '<div style="display:flex;gap:10px"><span class="card" style="flex:1;display:flex;align-items:center;gap:10px;height:60px;padding:0 16px;font-size:18px;font-weight:800">'+ic('meal',26,'#14161A',2)+'식사 제공</span><span class="card" style="flex:1;display:flex;align-items:center;gap:10px;height:60px;padding:0 16px;font-size:18px;font-weight:800">'+ic('shirt',26,'#14161A',2)+'편한 복장</span></div>';
+ if(w.ans===null){
+  out+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+  '<button type="button" class="btn-g" data-a="wans" data-v="no" style="height:96px;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:22px;font-weight:800">'+ic('x',30,'#14161A',3)+'불가</button>'+
+  '<button type="button" class="btn-y" data-a="wans" data-v="yes" style="height:96px;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:22px">'+ic('check',30,'#14161A',3)+'출근 가능</button></div>';
+ }else if(w.ans==='yes'){
+  out+='<div role="status" class="status btn-d pop" style="border-radius:20px">'+okMark()+'<span style="display:flex;flex-direction:column"><span style="font-size:24px;font-weight:800">접수 완료</span><span style="font-size:17px">전날 계약서 문자 발송</span></span></div>'+
+  '<button type="button" class="btn-y" data-a="wgo" data-v="contract" style="height:64px;border-radius:16px;font-size:20px">계약서 서명 (데모)</button>'+
+  '<button type="button" class="btn-g" data-a="wans" data-v="" style="height:52px;border-radius:14px;font-size:17px">응답 변경</button>';
+ }else{
+  out+='<div role="status" class="status card pop"><svg aria-hidden="true" width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="28" fill="#E1E4E9"/><path d="M19 19L37 37M37 19L19 37" stroke="#14161A" stroke-width="5" stroke-linecap="round"/></svg><span style="display:flex;flex-direction:column"><span style="font-size:24px;font-weight:800">불가 접수</span><span style="font-size:17px;color:#4A4F57">다음 근무 때 다시 안내</span></span></div>'+
+  '<button type="button" class="btn-g" data-a="wans" data-v="" style="height:52px;border-radius:14px;font-size:17px">응답 변경</button>';
+ }
+ out+='<span class="lnk" style="margin-top:auto">'+ic('phone',22,'currentColor',2)+'문의 [대표번호]</span>';
+ return out;
+}
+function okMark(){return '<svg aria-hidden="true" width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="28" fill="#FFC400"/><path d="M16 29L24.5 37.5L40 20" fill="none" stroke="#14161A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';}
+function wContract(){
+ var w=S.w;
+ if(w.ans!=='yes') return '<h1>근로계약서</h1><div class="card" style="padding:20px;font-size:18px;font-weight:700;line-height:1.6">아직 확정된 근무가 없습니다.<br>근무 요청에서 출근 가능을 누르면 계약서가 옵니다.</div><button type="button" class="btn-y big" data-a="wgo" data-v="offer">근무 요청 보기</button>';
+ var mini=function(i,t){return '<span style="display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800">'+ic(i,24,'#14161A',2)+t+'</span>';};
+ var out='<h1>근로계약서</h1><div class="card" style="padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px 12px">'+mini('cal','11월 19일')+mini('clock','08:00~17:00')+mini('pin','A센터 1층')+mini('won',PAY)+'</div>'+
+ '<button type="button" class="card" data-a="toast" data-v="데모에서는 계약서 전문을 생략합니다" style="height:60px;padding:0 18px;display:flex;align-items:center;gap:12px;font-size:19px;font-weight:700;text-align:left">'+ic('doc',26,'#14161A',2)+'계약서 전문<span style="margin-left:auto">'+ic('chev',24,'#14161A',2.4)+'</span></button>'+
+ '<div style="display:flex;align-items:center;justify-content:space-between"><span class="lbl">서명</span>'+(w.signed?'<button type="button" class="btn-g sb" data-a="wsign" data-v="0" style="box-shadow:none">다시</button>':'')+'</div>'+
+ '<button type="button" class="sign" data-a="wsign" data-v="1" aria-label="서명란. 누르면 서명">'+
+ (w.signed?'<svg aria-hidden="true" width="260" height="120" viewBox="0 0 260 120" fill="none" stroke="#14161A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 78c18-40 34-52 40-40s-12 44 2 40 22-46 34-44-4 40 8 40 20-30 30-30 2 28 14 26 26-34 38-36 10 22 46 8" stroke-dasharray="420" style="animation:draw .7s ease-out both"/></svg>':'<span style="display:flex;flex-direction:column;align-items:center;gap:8px;font-size:18px;font-weight:700;color:#4A4F57">'+ic('pen',40,'#4A4F57',1.8)+'눌러서 서명</span>')+'</button>';
+ if(w.confirmed){
+  out+='<div role="status" class="status btn-d pop" style="margin-top:auto">'+okMark()+'<span style="display:flex;flex-direction:column"><span style="font-size:24px;font-weight:800">출근 확정</span><span style="font-size:17px">당일 06:00 출발 확인 문자</span></span></div><button type="button" class="btn-y" data-a="wgo" data-v="checkin" style="height:64px;border-radius:16px;font-size:20px">당일 화면 보기 (데모)</button>';
+ }else{
+  out+='<button type="button" class="btn-y big" data-a="wconfirm" style="margin-top:auto"'+(w.signed?'':' disabled')+'>서명 완료</button>';
+ }
+ return out;
+}
+function progDot(state,icon,label){
+ var bg=state==='done'?'#14161A':state==='now'?'#FFC400':'#E1E4E9';
+ var col=state==='done'?'#FFC400':state==='now'?'#14161A':'#4A4F57';
+ var ring=state==='now'?'box-shadow:0 0 0 6px #FFF1BF;':'';
+ return '<div class="st" style="'+(state==='todo'?'color:#4A4F57':'')+'"><span class="dot" style="background:'+bg+';'+ring+'">'+ic(state==='done'?'check':icon,26,col,state==='done'?3:2.4)+'</span>'+label+'</div>';
+}
+function wCheckin(){
+ var w=S.w, s=w.arrived;
+ var out='<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:17px;font-weight:700;color:#4A4F57">오늘 · 11월 19일 (수)</span><h1 style="font-size:56px;line-height:64px">08:00</h1><span style="display:flex;align-items:center;gap:8px;font-size:20px;font-weight:700">'+ic('pin',24,'#14161A',2)+'A센터 1층</span></div>'+
+ '<div class="card prog">'+progDot('done','pen','계약')+'<span class="ln" style="background:#14161A"></span>'+progDot('done','walk','출발')+'<span class="ln" style="background:'+(s?'#14161A':'#E1E4E9')+'"></span>'+progDot(s?'done':'now','pin','도착')+'<span class="ln"></span>'+progDot(s?'now':'todo','out','퇴근')+'</div>';
+ if(!s) out+='<button type="button" class="btn-y" data-a="warrive" style="height:168px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:30px;box-shadow:0 8px 0 #B88A00">'+ic('pin',56,'#14161A',2)+'도착 체크인</button>';
+ else out+='<div role="status" class="status btn-d pop">'+okMark()+'<span style="display:flex;flex-direction:column"><span style="font-size:24px;font-weight:800">도착 07:48</span><span style="font-size:17px">퇴근 때 근태표 제출</span></span></div><button type="button" class="btn-y" data-a="wgo" data-v="checkout" style="height:72px;border-radius:18px;font-size:22px">퇴근하기</button>';
+ out+='<div class="btn-d" style="margin-top:auto;border-radius:20px;padding:14px 14px 14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:19px;font-weight:700">지각 · 결근 연락</span><span style="display:flex;align-items:center;gap:8px;height:52px;padding:0 16px;border-radius:14px;background:#FFC400;color:#14161A;font-size:17px;font-weight:800">'+ic('phone',22,'#14161A',2.2)+'[대표번호]</span></div>';
+ return out;
+}
+function wCheckout(){
+ var w=S.w;
+ var out='<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:17px;font-weight:700;color:#4A4F57">오늘 · A센터 1층</span><h1>퇴근</h1></div>'+
+ '<label class="card" style="padding:18px 20px;display:flex;align-items:center;gap:16px"><span class="ibox">'+ic('clock',28,'#14161A',2)+'</span><span style="display:flex;flex-direction:column;gap:2px;flex:1"><span style="font-size:16px;font-weight:700;color:#4A4F57">퇴근 시간</span><input id="w-out" type="time" value="17:00" style="height:40px;font-size:28px;font-weight:800;background:transparent;padding:0"></span></label>';
+ if(!w.photo){
+  out+='<label class="btn-w" style="height:220px;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:22px;font-weight:800;cursor:pointer;box-shadow:0 5px 0 #B9BEC6"><span style="width:84px;height:84px;border-radius:50%;background:#FFC400;display:flex;align-items:center;justify-content:center">'+ic('camera',44,'#14161A',2)+'</span>근태표 촬영<span style="font-size:16px;font-weight:600;color:#4A4F57">퇴근 시간 적은 뒤</span><input id="w-file" type="file" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0"></label>'+
+  '<button type="button" class="lnk" data-a="wphoto" style="margin-top:-6px;font-size:16px;color:#4A4F57">사진 없이 데모 진행</button>';
+ }else{
+  out+='<div class="sheet pop" style="position:relative;height:220px;border-radius:24px">'+(w.photoUrl?'<img src="'+w.photoUrl+'" alt="제출할 근태표 사진" style="max-width:100%;max-height:100%;border-radius:8px">':'<div class="paper" aria-hidden="true">근태표<i></i><i></i><i style="background:#FFC400;width:80%"></i><i></i></div>')+
+  '<button type="button" class="sb" data-a="wretake" style="position:absolute;right:12px;bottom:12px;background:#fff;font-weight:700">다시 촬영</button></div>';
+ }
+ if(w.submitted){
+  out+='<div role="status" class="status btn-d pop" style="margin-top:auto">'+okMark()+'<span style="display:flex;flex-direction:column"><span style="font-size:24px;font-weight:800">제출 완료</span><span style="font-size:17px">오늘 입금 · 확인 후 문자</span></span></div><button type="button" class="lnk" data-a="wgo" data-v="pay">입금 내역'+ic('chev',22,'currentColor',2.4)+'</button>';
+ }else{
+  out+='<button type="button" class="btn-y big" data-a="wsubmit" style="margin-top:auto"'+(w.photo?'':' disabled')+'>퇴근 제출</button>';
+ }
+ return out;
+}
+function wPay(){
+ var w=S.w;
+ var rows=[];
+ if(w.submitted) rows.push(['clock','11월 19일 (수)','A센터 1층 · 입금 예정',false]);
+ rows.push(['check','11월 12일 (수)','A센터 1층 · 입금 완료',true],['check','11월 5일 (수)','A센터 4층 · 입금 완료',true]);
+ var list=rows.map(function(r,i){return '<div class="row-i" style="gap:14px;padding:18px 0'+(i?';border-top:1px solid #ECEEF1':'')+'"><span style="width:44px;height:44px;border-radius:50%;background:'+(r[3]?'#14161A':'#FFF1BF')+';display:flex;align-items:center;justify-content:center">'+ic(r[0],24,r[3]?'#FFC400':'#14161A',r[3]?3:2.4)+'</span><span style="flex:1;display:flex;flex-direction:column"><span style="font-size:20px;font-weight:800">'+r[1]+'</span><span style="font-size:16px;font-weight:600;color:#4A4F57">'+r[2]+'</span></span><span style="font-size:19px;font-weight:800">'+PAY+'</span></div>';}).join('');
+ return '<h1>입금 내역</h1><div class="status btn-d">'+'<span style="width:64px;height:64px;border-radius:50%;background:#FFC400;display:flex;align-items:center;justify-content:center">'+ic('won',36,'#14161A',2.2)+'</span><span style="display:flex;flex-direction:column"><span style="font-size:17px;font-weight:700;color:#C9CDD3">11월 · 근무 '+rows.length+'일</span><span style="font-size:30px;line-height:38px;font-weight:800">'+(rows.length*130).toLocaleString()+',000원</span></span></div>'+
+ '<div class="card" style="padding:4px 20px">'+list+'</div><div class="card" style="height:60px;padding:0 18px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700">'+ic('card',26,'#14161A',2)+'[은행] ****1234</div>'+
+ '<button type="button" class="lnk" data-a="wgo" data-v="list" style="margin-top:auto">'+ic('back',22,'currentColor',2.4)+'근무 목록</button>';
+}
+
+/* ---------- 관리자 ---------- */
+var TABS=[['week','오더'],['today','출근'],['pay','정산'],['people','인력'],['centers','센터']];
+function admin(){
+ var a=S.a, t=a.tab, ordTab=(t==='week'||t==='send'||t==='order')?'week':t;
+ var nav=TABS.map(function(x){return '<button type="button" data-a="tab" data-v="'+x[0]+'" class="'+(x[0]===ordTab?'on':'')+'">'+x[1]+'</button>';}).join('');
+ var body={week:aWeek,send:aSend,order:aOrder,today:aToday,pay:aPay,people:aPeople,centers:aCenters}[t]();
+ return '<div class="bar abar"><span class="brand">엠앤티 인력</span><nav aria-label="관리자 메뉴">'+nav+'</nav><a class="home" href="#start">'+ic('home',18)+'처음</a></div><div class="wrap">'+body+'</div>';
+}
+function steps(cur){var n=[['week','요청'],['send','발송'],['order','현황']];return '<div class="steps">'+n.map(function(x,i){return (i?'<span class="sep" aria-hidden="true"></span>':'')+'<button type="button" data-a="tab" data-v="'+x[0]+'" class="'+(i+1===cur?'on':'')+'"><i>'+(i+1)+'</i>'+x[1]+'</button>';}).join('')+'</div>';}
+function hdr(title,right,sub){return '<div class="hdr"><div style="display:flex;flex-direction:column;gap:8px"><h1>'+title+'</h1>'+(sub||'')+'</div><div class="acts">'+(right||'')+'</div></div>';}
+function meta(){var c=CENTERS[S.a.week.c];return '<div class="meta"><span>'+ic('build',20,'currentColor',2)+c.n+' '+c.f+'</span><span>'+ic('cal',20,'currentColor',2)+'11월 '+DAYS[S.a.week.d]+'</span><span>'+ic('clock',20,'currentColor',2)+c.time+'</span></div>';}
+function ab(label,icon,act,v,kind){return '<button type="button" class="ab '+(kind||'btn-y')+'" data-a="'+act+'"'+(v!==undefined?' data-v="'+v+'"':'')+'>'+(icon?ic(icon,22,'#14161A',2.2):'')+label+'</button>';}
+function sb(label,act,v,y){return '<button type="button" class="sb '+(y?'btn-y':'btn-g')+'" style="box-shadow:'+(y?'0 3px 0 #B88A00':'none')+'" data-a="'+act+'"'+(v!==undefined?' data-v="'+v+'"':'')+'>'+label+'</button>';}
+function tile(label,val,ico,dark,suffix,tint){
+ if(dark) return '<div class="tile t-dark">'+ico+'<div><small>'+label+'</small><strong>'+val+(suffix?'<em> '+suffix+'</em>':'')+'</strong></div></div>';
+ return '<div class="tile card"><span class="tb" style="'+(tint?'background:'+tint:'')+'">'+ico+'</span><div><small>'+label+'</small><strong>'+val+'</strong></div></div>';
+}
+function table(cols,rows,minw,rowAttr){
+ return '<div class="card rt" style="overflow:hidden"><div class="tw"><table style="min-width:'+(minw||640)+'px"><thead><tr>'+cols.map(function(c){return '<th scope="col" class="'+(c[1]||'')+'">'+c[0]+'</th>';}).join('')+'</tr></thead><tbody>'+
+ rows.map(function(r,i){return '<tr'+(rowAttr?rowAttr(i):'')+'>'+r.map(function(v,j){return '<td class="'+(cols[j][1]||'')+'" data-label="'+cols[j][0]+'">'+v+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div></div>';
+}
+function pill(t,k,i){return '<span class="pill '+k+'">'+(i||'')+t+'</span>';}
+function callB(n){return '<button type="button" class="sb btn-g" style="width:44px;padding:0;justify-content:center;box-shadow:none" data-a="toast" data-v="'+n+'님에게 전화 (데모)" aria-label="'+n+'에게 전화">'+ic('phone',20,'#14161A',2.2)+'</button>';}
+function nm(r){return r.n+(r.isNew?'<span class="new">신규</span>':'')+(r.demo?'<span class="new" style="background:#14161A;color:#FFC400">나</span>':'');}
+function rosterAll(){var a=S.a, list=a.roster.slice();var w=S.w;if(w.ans!==null||a.sent){list.unshift({id:0,n:(w.name||'데모 근무자'),home:'1층',cnt:4,ns:0,demo:1,st:w.ans==='yes'?(w.confirmed?'confirmed':'accepted'):w.ans==='no'?'declined':(a.sent?'offered':'target'),day:w.arrived?'arrived':'moving',pay:w.submitted?'check':'none',ev:w.submitted?'근태표 사진':'–',acct:'****1234'});}return list;}
+
+function aWeek(){
+ var a=S.a;
+ var head='<tr><th scope="col">센터</th>'+DAYS.map(function(d){return '<th scope="col" style="text-align:center">'+d+'</th>';}).join('')+'</tr>';
+ var body=CENTERS.map(function(c,ci){
+  return '<tr><td><div style="font-size:17px;font-weight:800">'+c.n+' <span style="color:#4A4F57;font-weight:600">'+c.f+'</span></div><div style="font-size:14px;font-weight:500;color:#4A4F57">'+c.cad+' 요청</div></td>'+
+  a.grid[ci].map(function(v,di){
+   var sel=a.week.c===ci&&a.week.d===di;
+   if(v==='x') return '<td style="text-align:center;padding:8px"><span class="cell off" style="display:inline-flex;align-items:center;justify-content:center">휴무</span></td>';
+   return '<td style="text-align:center;padding:8px"><button type="button" class="cell'+(v===''?' empty':'')+(sel?' sel':'')+'" data-a="cell" data-v="'+ci+','+di+'" aria-label="'+c.n+' '+c.f+' '+DAYS[di]+' '+(v===''?'미요청':v+'명')+'" aria-pressed="'+sel+'">'+(v===''?'미요청':v)+'</button></td>';
+  }).join('')+'</tr>';
+ }).join('');
+ var c=CENTERS[a.week.c], v=a.grid[a.week.c][a.week.d], need=v===''?0:v;
+ var form='<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:16px;font-weight:800">인원</span><div class="stepper"><button type="button" data-a="need" data-v="-1" aria-label="인원 줄이기">'+ic('minus',24,'#14161A',3)+'</button><output aria-live="polite">'+need+'</output><button type="button" data-a="need" data-v="1" aria-label="인원 늘리기">'+ic('plus',24,'#14161A',3)+'</button></div></div>'+
+ '<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:16px;font-weight:800">대기자</span><div class="stepper"><button type="button" data-a="wait" data-v="-1" aria-label="대기자 줄이기">'+ic('minus',24,'#14161A',3)+'</button><output aria-live="polite">'+a.wait+'</output><button type="button" data-a="wait" data-v="1" aria-label="대기자 늘리기">'+ic('plus',24,'#14161A',3)+'</button></div></div>'+
+ '<div class="meta" style="font-size:16px"><span>'+ic('clock',20,'currentColor',2)+c.time+'</span><span>'+ic('meal',20,'currentColor',2)+'식사 '+c.meal+'</span></div>'+
+ '<button type="button" class="ab btn-y" data-a="tab" data-v="send" style="justify-content:center;height:60px;font-size:20px"'+(need?'':' disabled')+'>대상 추출 '+ic('right',22,'#14161A',2.4)+'</button>';
+ var adj='<div style="display:flex;align-items:center;gap:12px;font-size:17px;font-weight:700">'+ic('swap',28,'#14161A',2)+'<span>18 화 · 4층 미요청<br><span style="color:#4A4F57;font-weight:600">4층 근무자 → 1층 제안</span></span></div>'+sb('1층 대상에 추가','adj',undefined,true);
+ return steps(1)+hdr('주간 요청표 · 11월 3주',ab('지난주 복사','copy','toast','지난주 요청을 복사했습니다 (데모)','btn-w'))+
+ '<div class="split"><div class="m"><div class="meta" style="font-size:15px"><span><span style="width:16px;height:16px;border-radius:5px;background:#FFF1BF;display:inline-block"></span>요청 인원</span><span><span style="width:16px;height:16px;border-radius:5px;background:#F4F5F7;box-shadow:inset 0 0 0 2px #E1E4E9;display:inline-block"></span>미요청 · 칸을 눌러 입력</span></div>'+
+ '<div class="card wk" style="overflow:hidden"><div class="tw"><table style="min-width:640px"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div></div></div>'+
+ '<div class="s"><div class="card panel"><h2>11월 '+DAYS[a.week.d]+' · '+c.n+' '+c.f+'</h2>'+form+'</div><div class="card panel"><h2>센터 간 조정</h2>'+adj+'</div></div></div>';
+}
+var FILTERS=['19 수 가능','1층 근무자','4층 휴무자','노쇼 2회 이하','신규 지원자'];
+function targets(){var a=S.a;return a.roster.filter(function(r){if(!a.filters[3]&&r.ns>2){}if(a.filters[3]&&r.ns>2)return false;if(!a.filters[2]&&r.home==='4층')return false;if(!a.filters[4]&&r.isNew)return false;if(!a.filters[1]&&r.home==='1층')return false;return true;});}
+function aSend(){
+ var a=S.a, c=CENTERS[a.week.c], list=targets(), n=list.length+1;
+ var chips='<div class="chips">'+FILTERS.map(function(f,i){return '<button type="button" class="chip'+(a.filters[i]?' on':'')+'" data-a="filter" data-v="'+i+'" aria-pressed="'+(!!a.filters[i])+'">'+f+'</button>';}).join('')+'</div>';
+ var rows=[[ (S.w.name||'데모 근무자')+'<span class="new" style="background:#14161A;color:#FFC400">나</span>','1층','4','0','11/12']].concat(list.map(function(r){return [nm(r),r.home==='4층'?pill('4층','p-soft',ic('walk',16,'#14161A',2.2)):r.home,r.cnt,r.ns>1?'<b style="color:#B3261E">'+r.ns+'</b>':r.ns,r.cnt?'11/0'+(r.id+4):'–'];}));
+ var msg='<div class="bubble">[엠앤티 인력] 근무 요청<br>11/'+DAYS[a.week.d].replace(' ','(')+') '+c.time.replace(/ /g,'')+'<br>'+c.n+' '+c.f+'<br>'+PAY+' · 당일 입금<br>식사 '+c.meal+' · '+c.dress+'<br><u style="font-weight:800">[응답 링크]</u></div><span style="font-size:14px;font-weight:600;color:#4A4F57">센터 정보에서 자동 입력</span>';
+ var order='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button type="button" class="chip on">기근무자 먼저</button><button type="button" class="chip" data-a="toast" data-v="데모에서는 기근무자 먼저만 지원합니다">전체 동시</button></div><span class="meta" style="font-size:15px"><span>'+ic('clock',20,'currentColor',2)+'3시간 뒤 미달 시 당근 공고</span></span>';
+ return steps(2)+hdr('대상 '+n+'명',ab(n+'명 발송','send','send'),meta())+
+ '<div class="split"><div class="m">'+chips+table([['이름'],['주 근무지'],['출근','r'],['노쇼','r'],['최근 근무']],rows,560)+'</div><div class="s"><div class="card panel"><h2>문자 미리보기</h2>'+msg+'</div><div class="card panel"><h2>발송 순서</h2>'+order+'</div></div></div>';
+}
+function stPill(st){return {confirmed:pill('확정','p-dark',ic('check',16,'#FFC400',3.5)),accepted:pill('수락 · 서명 대기','p-y'),standby:pill('대기','p-y'),offered:pill('미응답','p-soft',ic('clock',16,'#14161A',2.6)),declined:pill('불가','p-gray'),target:pill('발송 전','p-gray'),off:pill('제외','p-gray')}[st];}
+function aOrder(){
+ var a=S.a, c=CENTERS[a.week.c];
+ if(!a.sent) return steps(3)+hdr('응답 현황',ab('발송 화면으로','send','tab','send'))+'<div class="card" style="padding:28px;font-size:18px;font-weight:700">아직 발송하지 않았습니다. 2단계에서 문자를 보내면 응답이 쌓입니다.</div>';
+ var list=rosterAll().filter(function(r){return r.st!=='off'&&r.st!=='target';});
+ var need=a.grid[a.week.c][a.week.d]||12;
+ var conf=list.filter(function(r){return r.st==='confirmed'||r.st==='accepted';}).length+5;
+ var cnt=function(s){return list.filter(function(r){return r.st===s;}).length;};
+ var tiles='<div class="tiles">'+tile('확정',conf,donut(Math.min(conf/need,1),'필요 '+need+'명 중 '+conf+'명 확정'),true,'/ '+need)+tile('대기',cnt('standby'),ic('users',34,'#14161A',2))+tile('미응답',cnt('offered'),ic('clock',34,'#14161A',2))+tile('불가',cnt('declined'),ic('x',34,'#14161A',2.4),false,null,'#E1E4E9')+'</div>';
+ var rows=list.map(function(r){var act=r.st==='standby'?sb('확정 전환','promote',r.id,true):r.st==='declined'?'–':callB(r.n);return [nm(r),r.cnt,r.ns,stPill(r.st),act];});
+ var names=list.filter(function(r){return r.st==='confirmed'||r.st==='accepted';}).map(function(r){return r.n+(r.isNew?'(신규 010-****-'+r.acct.slice(-4)+')':'');});
+ var roster='<div class="bubble">[11/'+DAYS[a.week.d].split(' ')[0]+' '+c.n+' '+c.f+' 임시직 명단]<br>'+(names.join(' · ')||'확정자 없음')+' 외 5명</div><div class="chips"><button type="button" class="chip on">'+c.n+' 반장</button></div>'+
+ (a.shared?'<div class="pill p-dark pop" style="justify-content:center;height:52px;font-size:17px">'+ic('check',18,'#FFC400',3)+'공유 완료 (데모)</div>':'<button type="button" class="ab btn-y" data-a="share" style="justify-content:center">'+ic('share',22,'#14161A',2.2)+'명단 보내기</button>');
+ return steps(3)+hdr(c.n+' '+c.f,ab('미응답 '+cnt('offered')+'명 재발송','send','toast','미응답자에게 다시 보냈습니다 (데모)')+ab('당근 공고 문구','copy','copy',undefined,'btn-w'),meta())+tiles+
+ '<div class="split"><div class="m">'+table([['이름'],['출근','r'],['노쇼','r'],['응답'],['처리','r']],rows,560)+'</div><div class="s"><div class="card panel"><h2>익일 명단 공유</h2>'+roster+'</div></div></div>';
+}
+var DAYST={arrived:['도착','p-dark','check'],moving:['이동 중','p-soft','walk'],lost:['연락 두절','p-y','ban'],standby:['대기','p-gray','users'],called:['호출 · 이동 중','p-soft','walk'],noshow:['노쇼','p-red','x'],none:['–','p-gray','']};
+function aToday(){
+ var a=S.a, list=rosterAll().filter(function(r){return r.st!=='off';});
+ var cnt=function(s){return list.filter(function(r){return r.day===s;}).length;};
+ var arrived=cnt('arrived')+4, need=12;
+ var tiles='<div class="tiles">'+tile('도착',arrived,donut(arrived/need,'필요 '+need+'명 중 '+arrived+'명 도착'),true,'/ '+need)+tile('이동 중',cnt('moving')+cnt('called'),ic('walk',34,'#14161A',2))+tile('연락 두절',cnt('lost'),ic('ban',34,'#14161A',2),false,null,'#FFC400')+tile('대기',cnt('standby'),ic('users',34,'#14161A',2),false,null,'#E1E4E9')+'</div>';
+ var order={lost:0,noshow:1,moving:2,called:3,arrived:4,standby:5,none:6};
+ list.sort(function(x,y){return order[x.day]-order[y.day];});
+ var rows=list.filter(function(r){return r.day!=='none';}).map(function(r){var d=DAYST[r.day];var act=r.day==='lost'?'<span style="display:inline-flex;gap:8px">'+sb('노쇼 처리','noshow',r.id)+callB(r.n)+'</span>':r.day==='standby'?sb('호출','call',r.id,true):callB(r.n);
+  return [nm(r),r.day==='arrived'?'06:1'+(r.id%10):r.day==='moving'?'06:30':'–',r.day==='arrived'?'07:4'+(r.id%10):'–',pill(d[0],d[1],d[2]?ic(d[2],16,d[1]==='p-dark'?'#FFC400':d[1]==='p-red'?'#B3261E':'#14161A',2.4):''),act];});
+ var lost=cnt('lost')+cnt('noshow');
+ var steps4=[['대기자 호출','대기 '+cnt('standby')+'명'],['오후 투입 확인','센터 반장'],['당근 긴급 공고','문구 복사 · 오전 마감'],['기근무자 일괄 문자','오늘 가능 · 1층·4층·5층']];
+ var fill='<div class="fill">'+steps4.map(function(s,i){return '<div class="'+(i<a.fill?'done':'')+'"><i>'+(i<a.fill?ic('check',18,'#14161A',3):i+1)+'</i><span><b>'+s[0]+'</b><small>'+s[1]+'</small></span></div>';}).join('')+'</div>';
+ var nextLbl=['대기자 '+Math.min(cnt('standby'),lost||1)+'명 호출','센터에 오후 투입 문의','당근 공고 문구 복사','기근무자 일괄 문자','충원 완료'][a.fill];
+ return hdr('오늘 · A센터 1층',ab('현장 QR','doc','toast','현장 QR을 표시합니다 (데모)','btn-w'),'<div class="meta"><span>'+ic('cal',20,'currentColor',2)+'11월 19일 (수)</span><span>'+ic('clock',20,'currentColor',2)+'08:00 ~ 17:00</span></div>')+tiles+
+ '<div class="split"><div class="m">'+table([['이름'],['출발'],['도착'],['상태'],['처리','r']],rows,620)+'</div><div class="s"><div class="panel dark"><h2>노쇼 '+lost+'명 · 충원 순서</h2>'+fill+
+ '<button type="button" class="ab btn-y" data-a="fillnext" style="justify-content:center"'+(a.fill>=4?' disabled':'')+'>'+nextLbl+'</button></div></div></div>';
+}
+function aPay(){
+ var list=rosterAll().filter(function(r){return r.day==='arrived'||r.pay!=='none'||r.day==='noshow'||r.day==='lost';});
+ var cnt=function(s){return list.filter(function(r){return r.pay===s;}).length;};
+ var paid=cnt('paid')+4, total=list.filter(function(r){return r.day!=='noshow'&&r.day!=='lost'||r.pay!=='none';}).length+4;
+ var tiles='<div class="tiles">'+tile('지급 완료',paid,donut(Math.min(paid/total,1),total+'명 중 '+paid+'명 지급'),true,'/ '+total)+tile('근태 확인 대기',cnt('check'),ic('camera',34,'#14161A',2),false,null,'#FFC400')+tile('지급 대기',cnt('ready'),ic('clock',34,'#14161A',2))+'</div>';
+ var src=function(t,i){return '<span style="display:inline-flex;align-items:center;gap:6px;font-weight:700">'+ic(i,18,'#14161A',2)+t+'</span>';};
+ var rows=list.map(function(r){
+  var ev=r.ev==='근태표 사진'?'<span style="display:inline-flex;gap:8px;align-items:center">'+src('근태표 사진','camera')+(r.pay==='check'?sb('사진 확인','photo',r.id,true):'')+'</span>':r.ev==='체크인'?src('체크인','check'):'–';
+  var p=r.pay==='paid'?pill('완료','p-dark',ic('check',16,'#FFC400',3.5)):r.pay==='check'?pill('확인 대기','p-soft'):r.pay==='ready'?pill('지급 대기','p-y'):(r.day==='noshow'||r.day==='lost')?pill('노쇼','p-gray'):pill('–','p-gray');
+  return [nm(r),(r.day==='noshow'||r.day==='lost')?'–':'08:00 ~ 17:00',ev,(r.day==='noshow'||r.day==='lost')?'–':PAY,'[은행] '+r.acct,p];});
+ rows.push(['B센터 6명','부장 공유 대기',src('부장 확인','users'),PAY+' × 6','–',pill('확인 대기','p-soft')]);
+ return hdr('정산 · 오늘',ab('지급 완료 처리','check','payall')+ab('이체 파일','down','toast','이체 파일은 실제 서비스에서 엑셀로 내려받습니다','btn-w')+ab('신고 자료','doc','toast','일용근로 신고 자료 (데모)','btn-w'),'<div class="meta"><span>'+ic('clock',20,'currentColor',2)+'기근무자 16~17시 일괄 지급</span></div>')+tiles+table([['이름'],['근무'],['확인 근거'],['일당','r'],['계좌'],['지급']],rows,820);
+}
+function aPeople(){
+ var a=S.a, tab=a.peopleTab;
+ var newN=a.applicants.filter(function(x){return x.st==='new';}).length;
+ var tabs='<div class="chips">'+[['all','전체 '+(214+a.applicants.filter(function(x){return x.st==='ok';}).length)],['new','신규 지원 '+newN],['caution','노쇼 주의 6']].map(function(t){return '<button type="button" class="chip'+(tab===t[0]?' on':'')+'" data-a="ptab" data-v="'+t[0]+'">'+t[1]+'</button>';}).join('')+'</div>';
+ var temp=function(v){var low=v<36;return '<span style="display:inline-flex;align-items:center;gap:4px;font-weight:800;color:'+(low?'#B3261E':'#14161A')+'">'+ic('temp',18,low?'#B3261E':'#14161A',2)+v.toFixed(1)+'°</span>';};
+ var main;
+ if(tab==='new'){
+  var rows=a.applicants.map(function(x,i){var act=x.st==='new'?'<span style="display:inline-flex;gap:8px">'+sb('등록','apply',i,true)+sb('보류','hold',i)+'</span>':x.st==='ok'?pill('등록됨','p-dark',ic('check',16,'#FFC400',3.5)):pill('보류','p-gray');return [x.n,pill('당근','p-soft'),temp(x.t),x.sk,x.d,act];});
+  main=table([['이름'],['경로'],['매너온도'],['경험'],['가능 요일'],['처리','r']],rows,720)+'<div style="font-size:15px;font-weight:600;color:#4A4F57">선별 기준은 매너온도·노쇼 이력·경험입니다. 연령으로 거르는 기능은 넣지 않습니다.</div>';
+ }else{
+  var ppl=a.roster.filter(function(r){return tab==='all'||r.ns>=1;});
+  main=table([['이름'],['주 근무지'],['출근','r'],['노쇼','r'],['상태']],ppl.map(function(r){return [nm(r),r.home,r.cnt,r.ns>1?'<b style="color:#B3261E">'+r.ns+'</b>':r.ns,a.blocked[r.id]?pill('차단','p-red',ic('ban',16,'#B3261E',2.4)):r.ns>2?pill('주의','p-y'):pill('정상','p-gray')];}),640,function(i){return ' class="clk'+(ppl[i].id===a.detail?' sel':'')+'" data-a="detail" data-v="'+ppl[i].id+'" tabindex="0"';});
+ }
+ var d=a.roster.filter(function(r){return r.id===a.detail;})[0]||a.roster[0], bl=!!a.blocked[d.id];
+ var prof='<div style="display:flex;align-items:center;gap:14px"><span style="width:56px;height:56px;border-radius:50%;background:#FFF1BF;display:flex;align-items:center;justify-content:center">'+ic('user',28,'#14161A',2)+'</span><span style="display:flex;flex-direction:column"><b style="font-size:20px">'+d.n+'</b><span style="font-size:15px;color:#4A4F57">주 근무지 '+d.home+'</span></span></div>'+
+ '<div class="stat3"><div><b>'+d.cnt+'</b><small>출근</small></div><div><b>'+d.ns+'</b><small>노쇼</small></div><div><b>'+(d.cnt>10?3:1)+'</b><small>센터</small></div></div>'+
+ '<div class="chips"><button type="button" class="chip on">1층</button><button type="button" class="chip'+(d.home==='4층'?' on':'')+'">4층</button><button type="button" class="chip">5층</button><button type="button" class="chip">B센터</button></div>'+
+ '<div style="display:flex;gap:8px">'+sb('메모','toast','메모 입력 (데모)')+'<button type="button" class="sb" data-a="block" data-v="'+d.id+'" style="background:'+(bl?'#E1E4E9':'#FBE4E2')+';color:'+(bl?'#14161A':'#B3261E')+';font-weight:800">'+ic('ban',18,bl?'#14161A':'#B3261E',2.4)+(bl?'차단 해제':'차단')+'</button></div>';
+ return hdr('인력',ab('지원자 등록 링크','copy','copylink'))+'<div class="split"><div class="m">'+tabs+main+'</div><div class="s"><div class="card panel"><h2>근무자 상세 · 표를 눌러 선택</h2>'+prof+'</div></div></div>';
+}
+function aCenters(){
+ var row=function(i,k,v){return '<div class="crow"><span class="ibox">'+ic(i,20,'#14161A',2)+'</span><span class="k">'+k+'</span><span class="v">'+v+'</span></div>';};
+ return hdr('센터 '+CENTERS.length+'곳',ab('센터 추가','plus','toast','센터 추가 (데모)'),'<div class="meta"><span>근무 요청·안내 문자에 자동 입력</span></div>')+
+ '<div class="centers">'+CENTERS.map(function(c){return '<div class="card panel"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b style="font-size:20px">'+c.n+' <span style="color:#4A4F57">'+c.f+'</span></b>'+sb('수정','toast','데모에서는 수정할 수 없습니다')+'</div>'+row('cal','요청',c.cad)+row('clock','근무',c.time)+row('meal','식사',c.meal)+row('shirt','복장',c.dress)+row('doc','계약',c.ct)+row('won','정산 근거',c.pay)+'</div>';}).join('')+'</div>';
+}
+function modal(){
+ var m=S.modal;
+ if(m.type==='photo'){var r=rosterAll().filter(function(x){return x.id===m.id;})[0];
+  return '<div class="box" role="dialog" aria-modal="true" aria-label="근태표 사진 확인"><b style="font-size:22px">'+(r?r.n:'')+' · 근태표</b><div class="sheet">'+(m.id===0&&S.w.photoUrl?'<img src="'+S.w.photoUrl+'" alt="근태표 사진" style="max-width:100%;max-height:100%">':'<div class="paper" aria-hidden="true">근태표 · 퇴근 17:00<i></i><i></i><i style="background:#FFC400;width:80%"></i><i></i></div>')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+sb('닫기','close')+'<button type="button" class="ab btn-y" data-a="verify" data-v="'+m.id+'" style="justify-content:center">확인 · 지급 대기</button></div></div>';}
+ if(m.type==='copy'){
+  return '<div class="box" role="dialog" aria-modal="true" aria-label="당근 공고 문구"><b style="font-size:22px">'+(m.title||'당근 공고 문구')+'</b><textarea id="copytext" readonly style="width:100%;height:170px;border:0;border-radius:14px;background:#F4F5F7;padding:14px;font:inherit;font-size:16px;line-height:1.6;resize:none">'+esc(m.text)+'</textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+sb('닫기','close')+'<button type="button" class="ab btn-y" data-a="docopy" style="justify-content:center">'+ic('copy',22,'#14161A',2.2)+'복사</button></div></div>';}
+ return '';
+}
+
+/* ---------- 이벤트 ---------- */
+document.addEventListener('click',function(e){
+ var el=e.target.closest('[data-a]'); if(!el) return;
+ if(el.tagName==='A') return;
+ var act=el.getAttribute('data-a'), v=el.getAttribute('data-v'), w=S.w, a=S.a;
+ switch(act){
+  case 'reset': S=fresh(); save(); toast('데모를 초기화했습니다'); break;
+  case 'toast': toast(v); return;
+  case 'wgo': w.step=v; window.scrollTo(0,0); break;
+  case 'wday': if(w.days[v]) delete w.days[v]; else w.days[v]=1; break;
+  case 'wskill': if(w.skills[v]) delete w.skills[v]; else w.skills[v]=1; break;
+  case 'wsignup': var n=document.getElementById('w-name'); w.name=(n&&n.value.trim())||''; w.step='list'; toast('등록 완료 · 근무 요청이 문자로 옵니다'); break;
+  case 'wans': w.ans=v||null; if(!v){w.signed=false;w.confirmed=false;} if(v==='yes')toast('관리자 응답 현황에 반영됐습니다'); break;
+  case 'wsign': w.signed=v==='1'; if(!w.signed) w.confirmed=false; break;
+  case 'wconfirm': if(w.signed){w.confirmed=true;toast('출근 확정 · 관리자 화면에 반영');} break;
+  case 'warrive': w.arrived=true; toast('도착 기록 07:48'); break;
+  case 'wphoto': w.photo=true; break;
+  case 'wretake': w.photo=false; w.photoUrl=null; break;
+  case 'wsubmit': if(w.photo){w.submitted=true;toast('제출 완료 · 관리자 정산에 반영');} break;
+  case 'tab': a.tab=v; window.scrollTo(0,0); break;
+  case 'cell': var p=v.split(','); a.week={c:+p[0],d:+p[1]}; break;
+  case 'need': var g=a.grid[a.week.c], cur=g[a.week.d]===''?0:g[a.week.d]; cur=Math.max(0,cur+(+v)); g[a.week.d]=cur||''; break;
+  case 'wait': a.wait=Math.max(0,a.wait+(+v)); break;
+  case 'adj': a.filters[2]=1; toast('4층 근무자를 1층 대상에 넣었습니다'); break;
+  case 'filter': if(a.filters[v]) delete a.filters[v]; else a.filters[v]=1; break;
+  case 'send':
+   a.sent=true; a.tab='order';
+   var map={1:'confirmed',2:'confirmed',3:'standby',4:'offered',5:'confirmed',7:'confirmed',8:'offered'};
+   a.roster.forEach(function(r){if(r.st==='off')return; var inT=targets().some(function(t){return t.id===r.id;}); r.st=inT?(map[r.id]||'offered'):'target';});
+   toast('문자 발송 완료 (데모 · 실제 발송 없음)'); break;
+  case 'promote': a.roster.forEach(function(r){if(r.id==+v)r.st='confirmed';}); toast('확정으로 바꿨습니다'); break;
+  case 'share': a.shared=true; toast('반장에게 명단을 보냈습니다 (데모)'); break;
+  case 'copy': var c=CENTERS[a.week.c]; S.modal={type:'copy',title:'당근 공고 문구',text:'[당일 급구] '+c.n+' '+c.f+' 물류 상하차\n11월 '+DAYS[a.week.d]+' '+c.time+'\n일당 '+PAY+' · 당일 입금\n식사 '+c.meal+' · '+c.dress+'\n지원 링크: [등록 링크]'}; break;
+  case 'copylink': S.modal={type:'copy',title:'지원자 등록 링크',text:'[등록 링크]\n당근 공고 본문에 붙여 넣으면 지원자가 바로 등록합니다.'}; break;
+  case 'docopy': var ta=document.getElementById('copytext'); try{navigator.clipboard.writeText(ta.value).then(function(){toast('복사했습니다');},function(){ta.select();toast('선택했습니다 · 길게 눌러 복사');});}catch(err){ta.select();toast('선택했습니다 · 길게 눌러 복사');} return;
+  case 'close': S.modal=null; break;
+  case 'noshow': a.roster.forEach(function(r){if(r.id==+v){r.day='noshow';r.ns+=1;}}); toast('노쇼로 기록했습니다'); break;
+  case 'call': a.roster.forEach(function(r){if(r.id==+v)r.day='called';}); toast('대기자를 호출했습니다'); break;
+  case 'fillnext':
+   if(a.fill===0){a.roster.forEach(function(r){if(r.day==='standby')r.day='called';});}
+   if(a.fill===2){var c2=CENTERS[0];S.modal={type:'copy',title:'당근 긴급 공고',text:'[당일 급구] '+c2.n+' '+c2.f+' 오후 근무\n오늘 13:00 ~ 17:00\n일당 [금액] · 당일 입금\n지원 링크: [등록 링크]'};}
+   a.fill=Math.min(4,a.fill+1); if(a.fill!==3) toast(['','대기자를 호출했습니다','센터에 오후 투입을 문의했습니다 (데모)','','기근무자에게 문자를 보냈습니다 (데모)'][a.fill]); break;
+  case 'photo': S.modal={type:'photo',id:+v}; break;
+  case 'verify': if(+v===0){w.verified=true;} a.roster.forEach(function(r){if(r.id==+v)r.pay='ready';}); S.modal=null; toast('확인 완료 · 지급 대기'); break;
+  case 'payall': a.roster.forEach(function(r){if(r.pay==='ready')r.pay='paid';}); if(w.verified)w.paid=true; toast('지급 대기 건을 지급 완료로 바꿨습니다'); break;
+  case 'ptab': a.peopleTab=v; break;
+  case 'apply': a.applicants[v].st='ok'; toast('인력 DB에 등록했습니다'); break;
+  case 'hold': a.applicants[v].st='hold'; break;
+  case 'detail': a.detail=+v; break;
+  case 'block': if(a.blocked[v]) delete a.blocked[v]; else a.blocked[v]=1; break;
+ }
+ render();
+});
+document.addEventListener('keydown',function(e){
+ if(e.key==='Escape'&&S.modal){S.modal=null;render();return;}
+ var t=e.target; if((e.key==='Enter'||e.key===' ')&&t.matches&&t.matches('tr[data-a]')){e.preventDefault();t.click();}
+});
+document.addEventListener('change',function(e){
+ if(e.target.id==='w-file'&&e.target.files&&e.target.files[0]){
+  var rd=new FileReader(); rd.onload=function(){S.w.photo=true; try{S.w.photoUrl=rd.result.length<1500000?rd.result:null;}catch(err){} render();}; rd.readAsDataURL(e.target.files[0]);
+ }
+});
+/* 데모 근무자 상태를 관리자 목록에 반영: 결제·정산 상태 연결 */
+var _rosterAll=rosterAll;
+rosterAll=function(){var l=_rosterAll();l.forEach(function(r){if(r.demo){if(S.w.paid)r.pay='paid';else if(S.w.verified)r.pay='ready';}});return l;};
+render();
+})();
+</script>
+</body>
+</html>
